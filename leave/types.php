@@ -10,8 +10,11 @@ if($_SERVER['REQUEST_METHOD']==='POST' && verify_csrf()){
 }
 if(isset($_GET['delete'])){ $pdo->prepare("DELETE FROM leave_types WHERE id=?")->execute([$_GET['delete']]); flash('success','Deleted'); redirect(base_url('leave/types.php')); }
 $types=$pdo->query("SELECT * FROM leave_types ORDER BY name")->fetchAll();
-layout_header('Leave Types','Configure leave policies','teal','<button onclick="document.getElementById(\'dlg-create\').showModal()" class="btn btn-primary">New Type</button> <a href="'.base_url('leave/').'" class="btn btn-outline">Back</a>');
+layout_header();
 ?>
+<div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+  <button onclick="document.getElementById('dlg-create').showModal()" class="btn btn-primary">New Type</button> <a href="<?= base_url('leave/') ?>" class="btn btn-outline">Back</a>
+</div>
 <div class="card tab-notch tab-teal"><div class="card-content" style="padding:0;"><div class="table-wrap"><table>
 <thead><tr><th>Name</th><th>Days Allowed</th><th>Carry Forward</th><th>Actions</th></tr></thead>
 <tbody>

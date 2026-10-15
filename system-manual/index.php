@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__.'/../includes/auth.php';
-require_login();
+require_role(['SUPER_ADMINISTRATOR']);
 require_once __DIR__.'/../includes/layout.php';
 layout_header('System Manual','HRMS PHP — User guide','teal');
 ?>

@@ -20,9 +20,12 @@ if($_SERVER['REQUEST_METHOD']==='POST' && verify_csrf()){
 if(isset($_GET['delete'])){ $pdo->prepare("UPDATE positions SET deleted_at=NOW() WHERE id=?")->execute([$_GET['delete']]); flash('success','Position deleted'); redirect(base_url('positions/')); }
 $depts=$pdo->query("SELECT * FROM departments WHERE deleted_at IS NULL ORDER BY name")->fetchAll();
 $positions=$pdo->query("SELECT p.*, d.name as dept_name, (SELECT COUNT(*) FROM employees e WHERE e.position_id=p.id AND e.deleted_at IS NULL) as emp_count FROM positions p LEFT JOIN departments d ON d.id=p.department_id WHERE p.deleted_at IS NULL ORDER BY p.created_at DESC")->fetchAll();
-layout_header('Positions','Define roles within departments','brass','<button onclick="document.getElementById(\'dlg-create\').showModal()" class="btn btn-primary"><i data-lucide="plus" style="width:0.875rem;height:0.875rem;"></i> New Position</button>');
+layout_header();
 if($error) echo '<div style="background:color-mix(in oklab, var(--destructive) 10%, transparent);color:var(--destructive);padding:0.75rem;border-radius:0.5rem;margin-bottom:1rem;">'.e($error).'</div>';
 ?>
+<div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+  <button onclick="document.getElementById('dlg-create').showModal()" class="btn btn-primary"><i data-lucide="plus" style="width:0.875rem;height:0.875rem;"></i> New Position</button>
+</div>
 <div class="card tab-notch tab-brass"><div class="card-content" style="padding:0;"><div class="table-wrap"><table>
 <thead><tr><th>Title</th><th>Department</th><th>Level</th><th>Employees</th><th>Actions</th></tr></thead>
 <tbody>

@@ -46,12 +46,17 @@ function canApprove($req, $role){
     if($role==='SUPER_ADMINISTRATOR' && in_array($req['status'],['PENDING','DEPARTMENT_APPROVED'])) return true;
     return false;
 }
-layout_header('Leave','Manage leave requests','teal','<button onclick="document.getElementById(\'dlg-create\').showModal()" class="btn btn-primary">New Request</button> <a href="'.base_url('leave/types.php').'" class="btn btn-outline">Leave Types</a> <a href="'.base_url('leave/calendar.php').'" class="btn btn-outline">Calendar</a>');
+layout_header();
 ?>
-<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center;justify-content:space-between;">
+  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
   <?php foreach(['ALL','PENDING','DEPARTMENT_APPROVED','APPROVED','REJECTED'] as $s): ?>
   <a href="?status=<?= e($s) ?>" class="btn <?= $statusFilter==$s?'btn-primary':'btn-outline' ?> btn-sm"><?= e($s) ?></a>
   <?php endforeach; ?>
+  </div>
+  <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+    <button onclick="document.getElementById('dlg-create').showModal()" class="btn btn-primary">New Request</button> <a href="<?= base_url('leave/types.php') ?>" class="btn btn-outline">Leave Types</a> <a href="<?= base_url('leave/calendar.php') ?>" class="btn btn-outline">Calendar</a>
+  </div>
 </div>
 <div class="card tab-notch tab-teal"><div class="card-content" style="padding:0;"><div class="table-wrap"><table>
 <thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>

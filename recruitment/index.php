@@ -11,8 +11,11 @@ if($_SERVER['REQUEST_METHOD']==='POST' && verify_csrf()){
 if(isset($_GET['delete'])){ $pdo->prepare("DELETE FROM recruitment_jobs WHERE id=?")->execute([$_GET['delete']]); flash('success','Job deleted'); redirect(base_url('recruitment/')); }
 $depts=$pdo->query("SELECT * FROM departments WHERE deleted_at IS NULL ORDER BY name")->fetchAll();
 $jobs=$pdo->query("SELECT j.*, d.name as dept_name, (SELECT COUNT(*) FROM applicants a WHERE a.job_id=j.id) as app_count FROM recruitment_jobs j LEFT JOIN departments d ON d.id=j.department_id ORDER BY j.created_at DESC")->fetchAll();
-layout_header('Recruitment','Manage job openings','teal','<button onclick="document.getElementById(\'dlg-create\').showModal()" class="btn btn-primary">New Job</button> <a href="'.base_url('recruitment/applicants.php').'" class="btn btn-outline">Applicants</a>');
+layout_header();
 ?>
+<div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+  <button onclick="document.getElementById('dlg-create').showModal()" class="btn btn-primary">New Job</button> <a href="<?= base_url('recruitment/applicants.php') ?>" class="btn btn-outline">Applicants</a>
+</div>
 <div class="card tab-notch tab-teal"><div class="card-content" style="padding:0;"><div class="table-wrap"><table>
 <thead><tr><th>Title</th><th>Department</th><th>Status</th><th>Applicants</th><th>Posted</th><th>Actions</th></tr></thead>
 <tbody>

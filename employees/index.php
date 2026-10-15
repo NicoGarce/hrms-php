@@ -17,14 +17,17 @@ $params=[];
 if($search!==''){ $sql.=" AND (e.first_name LIKE ? OR e.last_name LIKE ? OR e.employee_code LIKE ? OR u.email LIKE ?)"; $like="%$search%"; $params=[$like,$like,$like,$like]; }
 $sql.=" ORDER BY e.created_at DESC";
 $stmt=$pdo->prepare($sql); $stmt->execute($params); $rows=$stmt->fetchAll();
-layout_header('Employees','Manage your workforce','teal','<a href="'.base_url('employees/create.php').'" class="btn btn-primary"><i data-lucide="plus" style="width:0.875rem;height:0.875rem;"></i> Add Employee</a>');
+layout_header();
 ?>
-<div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap;">
+<div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap;justify-content:space-between;">
   <form method="GET" style="display:flex;gap:0.5rem;align-items:center;">
     <input name="q" value="<?= e($search) ?>" placeholder="Search employees..." class="input" style="width:16rem;">
     <button class="btn btn-outline">Search</button>
     <?php if($search): ?><a href="<?= base_url('employees/') ?>" class="btn btn-ghost">Clear</a><?php endif; ?>
   </form>
+  <div style="display:flex;gap:0.5rem;align-items:center;">
+    <a href="<?= base_url('employees/create.php') ?>" class="btn btn-primary"><i data-lucide="plus" style="width:0.875rem;height:0.875rem;"></i> Add Employee</a>
+  </div>
 </div>
 <div class="card tab-notch tab-teal">
   <div class="card-content" style="padding:0;">

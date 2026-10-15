@@ -10,8 +10,11 @@ if($_SERVER['REQUEST_METHOD']==='POST' && verify_csrf()){
 }
 if(isset($_GET['delete'])){ $pdo->prepare("DELETE FROM holidays WHERE id=?")->execute([$_GET['delete']]); flash('success','Holiday deleted'); redirect(base_url('attendance/holidays.php')); }
 $holidays=$pdo->query("SELECT * FROM holidays ORDER BY date DESC")->fetchAll();
-layout_header('Holidays','Company holidays','teal','<button onclick="document.getElementById(\'dlg\').showModal()" class="btn btn-primary">Add Holiday</button> <a href="'.base_url('attendance/').'" class="btn btn-outline">Back</a>');
+layout_header();
 ?>
+<div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+  <button onclick="document.getElementById('dlg').showModal()" class="btn btn-primary">Add Holiday</button> <a href="<?= base_url('attendance/') ?>" class="btn btn-outline">Back</a>
+</div>
 <div class="card tab-notch tab-teal"><div class="card-content" style="padding:0;"><div class="table-wrap"><table>
 <thead><tr><th>Name</th><th>Date</th><th>Type</th><th>Actions</th></tr></thead>
 <tbody>

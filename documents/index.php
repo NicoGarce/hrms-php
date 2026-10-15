@@ -32,10 +32,13 @@ if($filterType){ $sql.=" AND d.type LIKE ?"; $params[]="%$filterType%"; }
 $sql.=" ORDER BY d.created_at DESC";
 $stmt=$pdo->prepare($sql); $stmt->execute($params); $docs=$stmt->fetchAll();
 $employees=$pdo->query("SELECT e.id, CONCAT(e.first_name,' ',e.last_name) as name FROM employees e WHERE e.deleted_at IS NULL ORDER BY e.first_name")->fetchAll();
-layout_header('Documents','Company & employee documents','slate','<button onclick="document.getElementById(\'dlg-upload\').showModal()" class="btn btn-primary">Upload</button>');
+layout_header();
 ?>
-<div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+<div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap;justify-content:space-between;">
 <form method="GET" style="display:flex;gap:0.5rem;"><input name="type" value="<?= e($filterType) ?>" placeholder="Filter by type..." class="input" style="width:14rem;"><button class="btn btn-outline btn-sm">Filter</button><?php if($filterType): ?><a href="<?= base_url('documents/') ?>" class="btn btn-ghost btn-sm">Clear</a><?php endif; ?></form>
+<div style="display:flex;gap:0.5rem;align-items:center;">
+<button onclick="document.getElementById('dlg-upload').showModal()" class="btn btn-primary">Upload</button>
+</div>
 </div>
 <div class="card tab-notch tab-slate"><div class="card-content" style="padding:0;"><div class="table-wrap"><table>
 <thead><tr><th>Name</th><th>Employee</th><th>Type</th><th>Uploaded</th><th>Actions</th></tr></thead>

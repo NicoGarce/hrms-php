@@ -11,8 +11,11 @@ if($_SERVER['REQUEST_METHOD']==='POST' && verify_csrf()){
 if(isset($_GET['delete'])){ $pdo->prepare("DELETE FROM payroll WHERE id=?")->execute([$_GET['delete']]); flash('success','Payroll deleted'); redirect(base_url('payroll/')); }
 $employees=$pdo->query("SELECT e.id, CONCAT(e.first_name,' ',e.last_name) as name FROM employees e WHERE e.deleted_at IS NULL ORDER BY e.first_name")->fetchAll();
 $rows=$pdo->query("SELECT p.*, CONCAT(e.first_name,' ',e.last_name) as emp_name FROM payroll p JOIN employees e ON e.id=p.employee_id ORDER BY p.year DESC, p.month DESC")->fetchAll();
-layout_header('Payroll','Manage employee payroll','green','<button onclick="document.getElementById(\'dlg-create\').showModal()" class="btn btn-primary">New Payroll</button> <a href="'.base_url('payroll/items.php').'" class="btn btn-outline">Payroll Items</a>');
+layout_header();
 ?>
+<div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+  <button onclick="document.getElementById('dlg-create').showModal()" class="btn btn-primary">New Payroll</button> <a href="<?= base_url('payroll/items.php') ?>" class="btn btn-outline">Payroll Items</a>
+</div>
 <div class="card tab-notch tab-green"><div class="card-content" style="padding:0;"><div class="table-wrap"><table>
 <thead><tr><th>Employee</th><th>Period</th><th>Base</th><th>Gross</th><th>Net</th><th>Status</th><th>Actions</th></tr></thead>
 <tbody>

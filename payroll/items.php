@@ -11,8 +11,11 @@ if($_SERVER['REQUEST_METHOD']==='POST' && verify_csrf()){
 if(isset($_GET['delete'])){ $pdo->prepare("DELETE FROM payroll_items WHERE id=?")->execute([$_GET['delete']]); flash('success','Item deleted'); redirect(base_url('payroll/items.php')); }
 $payrolls=$pdo->query("SELECT p.id, CONCAT(e.first_name,' ',e.last_name,' - ',p.month,'/',p.year) as label FROM payroll p JOIN employees e ON e.id=p.employee_id ORDER BY p.year DESC, p.month DESC")->fetchAll();
 $items=$pdo->query("SELECT pi.*, CONCAT(e.first_name,' ',e.last_name) as emp_name, p.month, p.year FROM payroll_items pi JOIN payroll p ON p.id=pi.payroll_id JOIN employees e ON e.id=p.employee_id ORDER BY pi.created_at DESC")->fetchAll();
-layout_header('Payroll Items','Allowances, deductions & bonuses','green','<a href="'.base_url('payroll/').'" class="btn btn-outline">Back</a>');
+layout_header();
 ?>
+<div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+  <a href="<?= base_url('payroll/') ?>" class="btn btn-outline">Back</a>
+</div>
 <div class="card tab-notch tab-green"><div class="card-content">
 <form method="POST" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.5rem;align-items:end;margin-bottom:1rem;">
 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">

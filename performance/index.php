@@ -18,8 +18,13 @@ if($_SERVER['REQUEST_METHOD']==='POST' && verify_csrf()){
 $employees=$pdo->query("SELECT e.id, CONCAT(e.first_name,' ',e.last_name) as name FROM employees e WHERE e.deleted_at IS NULL ORDER BY e.first_name")->fetchAll();
 $sql="SELECT pr.*, CONCAT(e.first_name,' ',e.last_name) as emp_name, CONCAT(r.first_name,' ',r.last_name) as reviewer_name FROM performance_reviews pr JOIN employees e ON e.id=pr.employee_id LEFT JOIN employees r ON r.id=pr.reviewer_id ORDER BY pr.created_at DESC";
 $reviews=$pdo->query($sql)->fetchAll();
-layout_header('Performance','Reviews & appraisals','teal', (in_array($role,['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD'])?'<button onclick="document.getElementById(\'dlg-create\').showModal()" class="btn btn-primary">New Review</button>':''));
+layout_header();
 ?>
+<?php if(in_array($role,['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD'])): ?>
+<div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+  <button onclick="document.getElementById('dlg-create').showModal()" class="btn btn-primary">New Review</button>
+</div>
+<?php endif; ?>
 <div class="card tab-notch tab-teal"><div class="card-content" style="padding:0;"><div class="table-wrap"><table>
 <thead><tr><th>Employee</th><th>Reviewer</th><th>Period</th><th>Rating</th><th>Status</th><th>Actions</th></tr></thead>
 <tbody>

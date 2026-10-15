@@ -16,13 +16,16 @@ if($jobFilter){ $sql.=" AND a.job_id=?"; $params[]=$jobFilter; }
 if($statusFilter!=='ALL'){ $sql.=" AND a.status=?"; $params[]=$statusFilter; }
 $sql.=" ORDER BY a.applied_at DESC";
 $stmt=$pdo->prepare($sql); $stmt->execute($params); $apps=$stmt->fetchAll();
-layout_header('Applicants','Track candidates', 'teal', '<button onclick="document.getElementById(\'dlg-add\').showModal()" class="btn btn-primary">Add Applicant</button> <a href="'.base_url('recruitment/').'" class="btn btn-outline">Back to Jobs</a>');
+layout_header();
 ?>
-<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center;">
+<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center;justify-content:space-between;">
   <form method="GET" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
     <select name="job" class="input" style="width:14rem;" onchange="this.form.submit()"><option value="">All Jobs</option><?php foreach($jobs as $j): ?><option value="<?= e($j['id']) ?>" <?= $jobFilter==$j['id']?'selected':'' ?>><?= e($j['title']) ?></option><?php endforeach; ?></select>
     <select name="status" class="input" style="width:10rem;" onchange="this.form.submit()"><option value="ALL">All Status</option><?php foreach(['APPLIED','SCREENING','INTERVIEW','OFFER','HIRED','REJECTED'] as $s): ?><option <?= $statusFilter==$s?'selected':'' ?>><?= $s ?></option><?php endforeach; ?></select>
   </form>
+  <div style="display:flex;gap:0.5rem;align-items:center;">
+    <button onclick="document.getElementById('dlg-add').showModal()" class="btn btn-primary">Add Applicant</button> <a href="<?= base_url('recruitment/') ?>" class="btn btn-outline">Back to Jobs</a>
+  </div>
 </div>
 <div class="card tab-notch tab-teal"><div class="card-content" style="padding:0;"><div class="table-wrap"><table>
 <thead><tr><th>Name</th><th>Job</th><th>Email</th><th>Phone</th><th>Status</th><th>Applied</th><th>Actions</th></tr></thead>

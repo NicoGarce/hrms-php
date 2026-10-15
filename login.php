@@ -13,14 +13,24 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     else $error = $msg;
 }
 $theme = 'teal';
-try { $r=db()->query("SELECT theme FROM company_settings LIMIT 1")->fetch(); if($r && $r['theme']) $theme=$r['theme']; } catch(Exception $e){}
+$customColor = '';
+try {
+    $r=db()->query("SELECT * FROM company_settings LIMIT 1")->fetch();
+    if($r && !empty($r['theme'])) $theme=$r['theme'];
+    if($r && !empty($r['custom_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', (string)$r['custom_color'])) $customColor=(string)$r['custom_color'];
+} catch(Exception $e){}
+if ($theme === 'custom' && $customColor === '') $theme = 'teal';
+$themeAttr = ($theme === 'teal' || $theme === 'custom') ? '' : $theme;
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="<?= $theme==='teal'?'':e($theme) ?>" class="h-full">
+<html lang="en" data-theme="<?= e($themeAttr) ?>" class="h-full">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Login — HRMS</title>
 <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
+<?php if ($theme === 'custom' && $customColor !== ''): ?>
+<?= custom_theme_css($customColor) ?>
+<?php endif; ?>
 <style>body{margin:0;}</style>
 </head>
 <body>

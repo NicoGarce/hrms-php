@@ -17,24 +17,31 @@ function require_role(array $roles): void {
     }
 }
 function can_access(string $href): bool {
+    // Hidden sidebar sections are not accessible either
+    $section = current_section_for_path((string)(parse_url($href, PHP_URL_PATH) ?: $href));
+    if ($section !== null && !in_array($section, sidebar_enabled_sections(), true)) return false;
     $role = $_SESSION['user']['role'] ?? '';
+    // Match on the section path regardless of install subfolder
+    // (localhost: /hrms-php/dashboard/ — live: /dashboard/).
+    // $href is always built via base_url(), so compare path suffixes.
     $map = [
-        '/hrms-php/dashboard/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD','EMPLOYEE'],
-        '/hrms-php/employees/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD'],
-        '/hrms-php/departments/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR'],
-        '/hrms-php/positions/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR'],
-        '/hrms-php/recruitment/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR'],
-        '/hrms-php/attendance/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD'],
-        '/hrms-php/leave/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD','EMPLOYEE'],
-        '/hrms-php/payroll/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR'],
-        '/hrms-php/payslips/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD','EMPLOYEE'],
-        '/hrms-php/performance/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD'],
-        '/hrms-php/documents/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','EMPLOYEE'],
-        '/hrms-php/reports/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR'],
-        '/hrms-php/settings/' => ['SUPER_ADMINISTRATOR'],
+        'dashboard/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD','EMPLOYEE'],
+        'employees/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD'],
+        'departments/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR'],
+        'positions/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR'],
+        'recruitment/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR'],
+        'attendance/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD'],
+        'leave/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD','EMPLOYEE'],
+        'payroll/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR'],
+        'payslips/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD','EMPLOYEE'],
+        'performance/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD'],
+        'documents/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','EMPLOYEE'],
+        'reports/' => ['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR'],
+        'settings/' => ['SUPER_ADMINISTRATOR'],
     ];
-    foreach ($map as $prefix => $roles) {
-        if (strpos($href, $prefix) === 0) return in_array($role, $roles, true);
+    $path = (string)(parse_url($href, PHP_URL_PATH) ?: $href);
+    foreach ($map as $section => $roles) {
+        if (strpos($path . '/', '/' . $section) !== false) return in_array($role, $roles, true);
     }
     return true;
 }
@@ -75,7 +82,7 @@ function get_navigation(): array {
             ['title'=>'Notifications','href'=>base_url('settings/notifications.php')],
             ['title'=>'Audit Logs','href'=>base_url('settings/audit-logs.php')],
         ]],
-        ['title'=>'System Manual','href'=>base_url('system-manual/'),'icon'=>'book-open','roles'=>['SUPER_ADMINISTRATOR','HR_ADMINISTRATOR','DEPARTMENT_HEAD','EMPLOYEE']],
+        ['title'=>'System Manual','href'=>base_url('system-manual/'),'icon'=>'book-open','roles'=>['SUPER_ADMINISTRATOR']],
     ];
     $nav = [];
     foreach ($all as $item) {
@@ -89,9 +96,9 @@ function get_navigation(): array {
     return $nav;
 }
 
-/** Group the flat nav into labelled sections for the sidebar. */
-function get_navigation_groups(): array {
-    $map = [
+/** Sidebar section map: section label => top-level nav titles. */
+function nav_section_map(): array {
+    return [
         'OVERVIEW' => ['Dashboard'],
         'PEOPLE'   => ['Employees','Departments','Positions','Recruitment'],
         'TIME OFF' => ['Attendance','Leave','Performance'],
@@ -100,10 +107,54 @@ function get_navigation_groups(): array {
         'INSIGHTS' => ['Reports'],
         'ADMIN'    => ['Settings','System Manual'],
     ];
+}
+
+/** Enabled sidebar sections (ADMIN is always on so settings stay reachable). */
+function sidebar_enabled_sections(): array {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $all = array_keys(nav_section_map());
+    try {
+        $row = db()->query("SELECT sidebar_sections FROM company_settings LIMIT 1")->fetch();
+        if (!$row || empty($row['sidebar_sections'])) { $cache = $all; return $cache; }
+        $decoded = json_decode((string)$row['sidebar_sections'], true);
+        if (!is_array($decoded) || empty($decoded)) { $cache = $all; return $cache; }
+        $enabled = array_values(array_intersect($all, $decoded));
+        if (empty($enabled)) { $cache = $all; return $cache; }
+    } catch (Exception $e) { $cache = $all; return $cache; }
+    if (!in_array('ADMIN', $enabled, true)) $enabled[] = 'ADMIN';
+    $cache = $enabled;
+    return $cache;
+}
+
+/** Which sidebar section does a path belong to? Null when it matches no nav item (e.g. profile). */
+function current_section_for_path(string $curPath): ?string {
+    $map = nav_section_map();
+    foreach (get_navigation() as $item) {
+        $label = 'GENERAL';
+        foreach ($map as $name => $titles) if (in_array($item['title'], $titles, true)) { $label = $name; break; }
+        $hrefPath = rtrim((string)parse_url($item['href'], PHP_URL_PATH), '/');
+        $match = $hrefPath !== '' && ($curPath === $hrefPath || $curPath === $hrefPath . '/' || strpos($curPath, $hrefPath . '/') === 0);
+        if (!$match) {
+            foreach ($item['children'] ?? [] as $k) {
+                $kid = rtrim((string)parse_url($k['href'], PHP_URL_PATH), '/');
+                if ($kid !== '' && ($curPath === $kid || $curPath === $kid . '/')) { $match = true; break; }
+            }
+        }
+        if ($match) return $label;
+    }
+    return null;
+}
+
+/** Group the flat nav into labelled sections for the sidebar. */
+function get_navigation_groups(): array {
+    $map = nav_section_map();
+    $enabled = sidebar_enabled_sections();
     $groups = [];
     foreach (get_navigation() as $item) {
         $label = 'GENERAL';
         foreach ($map as $name => $titles) if (in_array($item['title'], $titles, true)) { $label = $name; break; }
+        if (!in_array($label, $enabled, true)) continue;
         $groups[$label][] = $item;
     }
     return $groups;

@@ -1,26 +1,45 @@
 <?php
 // layout helpers - call layout_header() at top, layout_footer() at bottom
-function layout_header(string $title='', string $accent='none'): void {
+function layout_header(string $title='', string $subtitle='', string $accent='teal', string $actionHtml=''): void {
+    // Backward compat: legacy calls used layout_header($title, $accent)
+    if (func_num_args() === 2 && in_array($subtitle, ['teal','brass','green','slate','brick','none',''], true)) {
+        $accent = $subtitle;
+        $subtitle = '';
+    }
     $user = current_user();
     $uri = $_SERVER['REQUEST_URI'] ?? '';
+    // Block direct URL access to sidebar sections disabled in Settings
+    $curPath = parse_url($uri, PHP_URL_PATH) ?: '/';
+    $curSection = current_section_for_path($curPath);
+    if ($curSection !== null && !in_array($curSection, sidebar_enabled_sections(), true)) {
+        http_response_code(403);
+        die('<h1>403 Forbidden</h1><p>This section (<b>'.e($curSection).'</b>) is disabled in Settings → Sidebar Sections.</p><a href="'.base_url('dashboard/').'">Back to dashboard</a>');
+    }
     // theme from company_settings or localStorage fallback
     $theme = 'teal';
+    $customColor = '';
     try {
-        $row = db()->query("SELECT theme FROM company_settings LIMIT 1")->fetch();
-        if ($row && $row['theme']) $theme = $row['theme'];
+        $row = db()->query("SELECT * FROM company_settings LIMIT 1")->fetch();
+        if ($row && !empty($row['theme'])) $theme = $row['theme'];
+        if ($row && !empty($row['custom_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', (string)$row['custom_color'])) $customColor = (string)$row['custom_color'];
     } catch(Exception $e){}
+    if ($theme === 'custom' && $customColor === '') $theme = 'teal';
+    $themeAttr = ($theme === 'teal' || $theme === 'custom') ? '' : $theme;
     $initials = initials($user['name'] ?? $user['email'] ?? 'U');
     $onProfile = nav_is_active(base_url('profile/'), parse_url($uri, PHP_URL_PATH) ?: '/');
     $flashSuccess = flash('success');
     $flashError = flash('error');
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="<?= $theme==='teal'?'':e($theme) ?>" class="h-full">
+<html lang="en" data-theme="<?= e($themeAttr) ?>" class="h-full">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= e($title ?: 'HRMS') ?> — HRMS</title>
 <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
+<?php if ($theme === 'custom' && $customColor !== ''): ?>
+<?= custom_theme_css($customColor) ?>
+<?php endif; ?>
 <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="h-full antialiased">
@@ -87,6 +106,7 @@ function layout_header(string $title='', string $accent='none'): void {
     <main class="content animate-fade-in">
       <?php if($flashSuccess): ?><div class="toast" style="border-left:3px solid var(--chart-3);"><?= e($flashSuccess) ?></div><?php endif; ?>
       <?php if($flashError): ?><div class="toast" style="border-left:3px solid var(--destructive);"><?= e($flashError) ?></div><?php endif; ?>
+      <?php if($title !== '') page_header($title, $subtitle, $accent, $actionHtml); ?>
 <?php
 }
 
