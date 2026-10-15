@@ -18,10 +18,16 @@ function layout_header(string $title='', string $subtitle='', string $accent='te
     // theme from company_settings or localStorage fallback
     $theme = 'teal';
     $customColor = '';
+    $siteName = 'HRMS';
+    $siteAbbr = 'HRMS';
+    $logoSrc = '';
     try {
         $row = db()->query("SELECT * FROM company_settings LIMIT 1")->fetch();
         if ($row && !empty($row['theme'])) $theme = $row['theme'];
         if ($row && !empty($row['custom_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', (string)$row['custom_color'])) $customColor = (string)$row['custom_color'];
+        if ($row && !empty($row['company_name'])) $siteName = (string)$row['company_name'];
+        if ($row && !empty($row['abbreviation'])) $siteAbbr = (string)$row['abbreviation'];
+        $logoSrc = company_logo_src($row['logo_url'] ?? null);
     } catch(Exception $e){}
     if ($theme === 'custom' && $customColor === '') $theme = 'teal';
     $themeAttr = ($theme === 'teal' || $theme === 'custom') ? '' : $theme;
@@ -35,8 +41,9 @@ function layout_header(string $title='', string $subtitle='', string $accent='te
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?= e($title ?: 'HRMS') ?> — HRMS</title>
+<title><?= e($title ? $title . ' — ' . $siteName : $siteName) ?></title>
 <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
+<?php if ($logoSrc !== ''): ?><link rel="icon" href="<?= e($logoSrc) ?>"><?php endif; ?>
 <?php if ($theme === 'custom' && $customColor !== ''): ?>
 <?= custom_theme_css($customColor) ?>
 <?php endif; ?>
@@ -47,8 +54,8 @@ function layout_header(string $title='', string $subtitle='', string $accent='te
   <!-- Sidebar desktop -->
   <aside id="sidebar">
     <div class="sb-brand">
-      <div class="sb-logo">H</div>
-      <span class="sb-brand-name">HRMS</span>
+      <?php if ($logoSrc !== ''): ?><img src="<?= e($logoSrc) ?>" alt="<?= e($siteAbbr) ?>" style="width:2rem;height:2rem;border-radius:0.5rem;object-fit:contain;flex-shrink:0;"><?php else: ?><div class="sb-logo"><?= e(mb_substr($siteAbbr, 0, 1)) ?></div><?php endif; ?>
+      <span class="sb-brand-name"><?= e($siteAbbr) ?></span>
     </div>
     <?php render_sidebar('desktop', parse_url($uri, PHP_URL_PATH) ?: '/', $user, $initials); ?>
     <div class="sb-footer">
@@ -65,8 +72,8 @@ function layout_header(string $title='', string $subtitle='', string $accent='te
     <div id="drawer-overlay"></div>
     <div class="drawer-panel">
       <div class="sb-brand">
-        <div class="sb-logo">H</div>
-        <span class="sb-brand-name">HRMS</span>
+        <?php if ($logoSrc !== ''): ?><img src="<?= e($logoSrc) ?>" alt="<?= e($siteAbbr) ?>" style="width:2rem;height:2rem;border-radius:0.5rem;object-fit:contain;flex-shrink:0;"><?php else: ?><div class="sb-logo"><?= e(mb_substr($siteAbbr, 0, 1)) ?></div><?php endif; ?>
+        <span class="sb-brand-name"><?= e($siteAbbr) ?></span>
         <button class="btn btn-ghost btn-icon sb-drawer-close" data-close type="button" title="Close menu" style="margin-left:auto;color:var(--sidebar-foreground);">
           <i data-lucide="x" style="width:1rem;height:1rem;"></i>
         </button>

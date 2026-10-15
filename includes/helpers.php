@@ -23,6 +23,13 @@ function base_url(string $path=''): string {
     return $base . '/' . ltrim($path, '/');
 }
 function redirect(string $url): void { header("Location: $url"); exit; }
+/** Resolve a stored logo path/URL to a usable src. Returns '' when none. */
+function company_logo_src(?string $logo): string {
+    $logo = trim((string)$logo);
+    if ($logo === '') return '';
+    if (preg_match('#^(https?://|data:)#i', $logo)) return $logo;
+    return base_url(ltrim($logo, '/'));
+}
 function flash(string $key, string $msg=''): ?string {
     if ($msg !== '') { $_SESSION['_flash'][$key] = $msg; return null; }
     if (isset($_SESSION['_flash'][$key])) { $v = $_SESSION['_flash'][$key]; unset($_SESSION['_flash'][$key]); return $v; }

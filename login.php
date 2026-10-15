@@ -14,10 +14,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 }
 $theme = 'teal';
 $customColor = '';
+$siteName = 'HRMS';
+$siteAbbr = 'HRMS';
+$logoSrc = '';
 try {
     $r=db()->query("SELECT * FROM company_settings LIMIT 1")->fetch();
     if($r && !empty($r['theme'])) $theme=$r['theme'];
     if($r && !empty($r['custom_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', (string)$r['custom_color'])) $customColor=(string)$r['custom_color'];
+    if($r && !empty($r['company_name'])) $siteName=(string)$r['company_name'];
+    if($r && !empty($r['abbreviation'])) $siteAbbr=(string)$r['abbreviation'];
+    $logoSrc = company_logo_src($r['logo_url'] ?? null);
 } catch(Exception $e){}
 if ($theme === 'custom' && $customColor === '') $theme = 'teal';
 $themeAttr = ($theme === 'teal' || $theme === 'custom') ? '' : $theme;
@@ -26,8 +32,9 @@ $themeAttr = ($theme === 'teal' || $theme === 'custom') ? '' : $theme;
 <html lang="en" data-theme="<?= e($themeAttr) ?>" class="h-full">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login — HRMS</title>
+<title>Login — <?= e($siteName) ?></title>
 <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
+<?php if ($logoSrc !== ''): ?><link rel="icon" href="<?= e($logoSrc) ?>"><?php endif; ?>
 <?php if ($theme === 'custom' && $customColor !== ''): ?>
 <?= custom_theme_css($customColor) ?>
 <?php endif; ?>
@@ -41,16 +48,16 @@ $themeAttr = ($theme === 'teal' || $theme === 'custom') ? '' : $theme;
     <div style="position:absolute;left:-8rem;bottom:-8rem;width:24rem;height:24rem;border-radius:9999px;border:32px solid color-mix(in oklab, var(--primary) 5%, transparent);"></div>
     <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.03;" aria-hidden="true"><defs><pattern id="dot" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="currentColor"/></pattern></defs><rect width="100%" height="100%" fill="url(#dot)"/></svg>
     <div style="position:relative;z-index:1;text-align:center;" class="animate-fade-in">
-      <div style="margin:0 auto 2rem;width:4rem;height:4rem;border-radius:1rem;background:var(--primary);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px color-mix(in oklab, var(--primary) 30%, transparent);color:var(--primary-foreground);font-weight:700;font-size:1.5rem;">H</div>
-      <h1 style="font-family:var(--font-heading);font-size:2.25rem;font-weight:700;letter-spacing:-0.02em;">HRMS</h1>
+      <?php if ($logoSrc !== ''): ?><img src="<?= e($logoSrc) ?>" alt="<?= e($siteName) ?>" style="margin:0 auto 2rem;height:4rem;width:auto;border-radius:0.75rem;"><?php else: ?><div style="margin:0 auto 2rem;width:4rem;height:4rem;border-radius:1rem;background:var(--primary);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px color-mix(in oklab, var(--primary) 30%, transparent);color:var(--primary-foreground);font-weight:700;font-size:1.5rem;"><?= e(mb_substr($siteAbbr, 0, 1)) ?></div><?php endif; ?>
+      <h1 style="font-family:var(--font-heading);font-size:2.25rem;font-weight:700;letter-spacing:-0.02em;"><?= e($siteName) ?></h1>
       <p style="max-width:20rem;color:var(--muted-foreground);font-size:0.9375rem;margin:0.5rem auto 0;line-height:1.5;">Human resource management system — manage your workforce with confidence.</p>
     </div>
   </div>
   <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:1.5rem;">
     <div style="width:100%;max-width:22rem;" class="animate-fade-in">
       <div style="text-align:center;margin-bottom:2rem;" class="mobile-brand">
-        <div style="margin:0 auto 1rem;width:3rem;height:3rem;border-radius:0.75rem;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-foreground);font-weight:700;">H</div>
-        <h1 style="font-family:var(--font-heading);font-size:1.5rem;font-weight:700;">HRMS</h1>
+        <?php if ($logoSrc !== ''): ?><img src="<?= e($logoSrc) ?>" alt="<?= e($siteName) ?>" style="margin:0 auto 1rem;height:3rem;width:auto;border-radius:0.5rem;"><?php else: ?><div style="margin:0 auto 1rem;width:3rem;height:3rem;border-radius:0.75rem;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary-foreground);font-weight:700;"><?= e(mb_substr($siteAbbr, 0, 1)) ?></div><?php endif; ?>
+        <h1 style="font-family:var(--font-heading);font-size:1.5rem;font-weight:700;"><?= e($siteName) ?></h1>
         <p style="margin-top:0.25rem;font-size:0.875rem;color:var(--muted-foreground);">Sign in to your account</p>
       </div>
       <div style="border:1px solid var(--border);background:var(--card);border-radius:1rem;padding:1.75rem;box-shadow:0 1px 3px oklch(0 0 0 / 0.05), 0 0 0 1px oklch(0 0 0 / 0.03);">
