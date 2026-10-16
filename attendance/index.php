@@ -89,8 +89,9 @@ $employees = $pdo->query("SELECT e.*, d.name as dept_name FROM employees e LEFT 
 $attMap=[]; $stmt=$pdo->prepare("SELECT * FROM attendance WHERE date=?"); $stmt->execute([$date]); foreach($stmt->fetchAll() as $r) $attMap[$r['employee_id']]=$r;
 // fetch approved leaves overlapping date
 $leaveMap=[]; $stmt=$pdo->prepare("SELECT employee_id FROM leave_requests WHERE status='APPROVED' AND ? BETWEEN start_date AND end_date"); $stmt->execute([$date]); foreach($stmt->fetchAll() as $r) $leaveMap[$r['employee_id']]=true;
-layout_header('Attendance','Daily attendance — '.e(date('l, M j, Y', strtotime($date))),'teal');
+layout_header();
 ?>
+<p style="color:var(--muted-foreground);font-size:0.875rem;margin-bottom:1rem;"><?= e(date('l, F j, Y', strtotime($date))) ?></p>
 <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
   <a href="?date=<?= e($prev) ?>" class="btn btn-outline btn-sm"><i data-lucide="chevron-left" style="width:0.875rem;height:0.875rem;"></i></a>
   <form method="GET" style="display:flex;gap:0.5rem;align-items:center;"><input type="date" name="date" value="<?= e($date) ?>" class="input" style="width:auto;"><button class="btn btn-outline btn-sm">Go</button></form>

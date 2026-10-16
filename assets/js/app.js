@@ -1,13 +1,16 @@
 // HRMS PHP app.js
+// Storage can throw when cookies are blocked — never let that kill the UI.
+function storeGet(k){ try{ return localStorage.getItem(k); }catch(err){ return null; } }
+function storeSet(k,v){ try{ localStorage.setItem(k,v); }catch(err){} }
 document.addEventListener('DOMContentLoaded', ()=>{
   // theme toggle
   const root = document.documentElement;
-  const saved = localStorage.getItem('theme');
+  const saved = storeGet('theme');
   if(saved) root.classList.toggle('dark', saved==='dark');
-  const savedDataTheme = localStorage.getItem('data-theme');
+  const savedDataTheme = storeGet('data-theme');
   if(savedDataTheme) root.setAttribute('data-theme', savedDataTheme);
   // sidebar collapse
-  const collapsed = localStorage.getItem('sidebar-collapsed')==='1';
+  const collapsed = storeGet('sidebar-collapsed')==='1';
   if(collapsed) document.body.classList.add('sidebar-collapsed');
   // mobile drawer
   const btnMobile = document.getElementById('btn-mobile-menu');
@@ -28,15 +31,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   btnCollapse?.addEventListener('click', ()=>{
     const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
-    localStorage.setItem('sidebar-collapsed', isCollapsed?'1':'0');
+    storeSet('sidebar-collapsed', isCollapsed?'1':'0');
     syncCollapseIcon();
   });
   syncCollapseIcon();
   // parent rows expand their submenu when clicked (no arrow indicators);
   // first click opens in place, second click follows the link
   try{
-    const openIds = JSON.parse(sessionStorage.getItem('sb-open') || '[]');
-    openIds.forEach(id=>{
+    const openIds = JSON.parse(sessionStorage.getItem('sb-open') || '[]');    openIds.forEach(id=>{
       const list = document.getElementById(id);
       if(list && list.classList.contains('sb-sub')) list.classList.remove('is-collapsed');
     });
@@ -72,7 +74,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') toggleNotif(false); });
   document.getElementById('btn-theme')?.addEventListener('click', ()=>{
     const isDark = root.classList.toggle('dark');
-    localStorage.setItem('theme', isDark?'dark':'light');
+    storeSet('theme', isDark?'dark':'light');
   });
   // search palette Ctrl+K
   const palette = document.getElementById('cmd-palette');

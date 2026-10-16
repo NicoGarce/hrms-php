@@ -166,7 +166,7 @@ function layout_footer(): void {
     </div>
   </div>
 </div>
-<script src="<?= base_url('assets/js/app.js') ?>"></script>
+<script src="<?= base_url('assets/js/app.js') ?>?v=<?= (int)@filemtime(__DIR__.'/../assets/js/app.js') ?>"></script>
 <script>lucide.createIcons();</script>
 <script>
 // command search live

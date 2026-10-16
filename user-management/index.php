@@ -117,7 +117,7 @@ $stmt = $pdo->prepare($sql); $stmt->execute($params); $users = $stmt->fetchAll()
 $roles = $pdo->query("SELECT * FROM roles ORDER BY name")->fetchAll();
 
 $qs = array_filter(['q' => $q, 'role' => $roleF, 'state' => $stateF, 'login' => $loginF]);
-layout_header('User Management', 'Accounts, roles, lockouts and resets — Super Admin only', 'teal');
+layout_header();
 ?>
 <div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap;justify-content:space-between;">
   <form method="GET" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">

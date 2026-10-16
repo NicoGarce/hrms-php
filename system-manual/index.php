@@ -2,7 +2,7 @@
 require_once __DIR__.'/../includes/auth.php';
 require_role(['SUPER_ADMINISTRATOR']);
 require_once __DIR__.'/../includes/layout.php';
-layout_header('System Manual','HRMS PHP — User guide','teal');
+layout_header();
 ?>
 <div style="display:grid;gap:1rem;max-width:52rem;">
 <div class="card tab-notch tab-teal"><div class="card-header"><div class="card-title">Overview</div></div><div class="card-content" style="font-size:0.875rem;line-height:1.6;color:var(--muted-foreground);">
