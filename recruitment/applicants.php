@@ -5,9 +5,35 @@ require_once __DIR__.'/../includes/layout.php';
 $pdo=db();
 $jobFilter=$_GET['job']??''; $statusFilter=$_GET['status']??'ALL';
 if($_SERVER['REQUEST_METHOD']==='POST' && verify_csrf()){
-    if(isset($_POST['update_status'])){ $id=$_POST['id']??''; $st=$_POST['status']??''; if($id&&$st){ $pdo->prepare("UPDATE applicants SET status=? WHERE id=?")->execute([$st,$id]); flash('success','Status updated'); } redirect(base_url('recruitment/applicants.php?job='.e($jobFilter)));
+    if(isset($_POST['update_status'])){ $id=$_POST['id']??''; $st=$_POST['status']??''; if($id&&$st){ $tag = ($st==='HIRED') ? 'ONBOARDING' : 'NONE'; $pdo->prepare("UPDATE applicants SET status=?, onboarding_tag=? WHERE id=?")->execute([$st,$tag,$id]); audit_log('UPDATE','applicants',$id,['status'=>$st]); flash('success','Status updated'.($st==='HIRED'?' — onboarding tag set, conversion will require mandatory 201 documents':'')); } redirect(base_url('recruitment/applicants.php?job='.urlencode($jobFilter)));
     }
-    if(isset($_POST['create_applicant'])){ $job=$_POST['job_id']??$jobFilter; $fn=trim($_POST['first_name']??''); $ln=trim($_POST['last_name']??''); $email=trim($_POST['email']??''); $phone=trim($_POST['phone']??''); if($job&&$fn&&$ln&&$email){ $pdo->prepare("INSERT INTO applicants (id,job_id,first_name,last_name,email,phone,status) VALUES (?,?,?,?,?,?,?)")->execute([uuid(),$job,$fn,$ln,$email,$phone?:null,'APPLIED']); flash('success','Applicant added'); } redirect(base_url('recruitment/applicants.php?job='.e($job)));
+    if(isset($_POST['create_applicant'])){ $job=$_POST['job_id']??$jobFilter; $fn=trim($_POST['first_name']??''); $ln=trim($_POST['last_name']??''); $email=trim($_POST['email']??''); $phone=trim($_POST['phone']??''); if($job&&$fn&&$ln&&$email){ $pdo->prepare("INSERT INTO applicants (id,job_id,first_name,last_name,email,phone,status) VALUES (?,?,?,?,?,?,?)")->execute([uuid(),$job,$fn,$ln,$email,$phone?:null,'APPLIED']); audit_log('CREATE','applicants',null,['email'=>$email]); flash('success','Applicant added'); } redirect(base_url('recruitment/applicants.php?job='.urlencode($job ?? '')));
+    }
+    // Convert a HIRED applicant: generates Employee Number + FIRST_LOGIN account.
+    if(isset($_POST['convert_applicant'])){
+        $id=$_POST['id']??'';
+        $a=$pdo->prepare("SELECT a.*, j.department_id FROM applicants a LEFT JOIN recruitment_jobs j ON j.id=a.job_id WHERE a.id=? LIMIT 1");
+        $a->execute([$id]); $app=$a->fetch();
+        if(!$app){ flash('error','Applicant not found'); redirect(base_url('recruitment/applicants.php')); }
+        if($app['status']!=='HIRED'){ flash('error','Only HIRED applicants can be converted'); redirect(base_url('recruitment/applicants.php')); }
+        $chk=$pdo->prepare("SELECT id FROM users WHERE email=?"); $chk->execute([$app['email']]);
+        if($chk->fetch()){ flash('error','An account with this email already exists'); redirect(base_url('recruitment/applicants.php')); }
+        $roleId=$pdo->query("SELECT id FROM roles WHERE name='EMPLOYEE' LIMIT 1")->fetchColumn();
+        $empNo=next_employee_number();
+        $c=$pdo->prepare("SELECT id FROM users WHERE employee_number=?"); $c->execute([$empNo]);
+        if($c->fetch()) $empNo=next_employee_number(date('Y', strtotime('+1 second')));
+        $uid=uuid(); $eid=uuid(); $epid=uuid();
+        $hash=password_hash($empNo, PASSWORD_BCRYPT);
+        $pdo->beginTransaction();
+        try{
+            $pdo->prepare("INSERT INTO users (id,email,employee_number,password,role_id,account_state,email_verified) VALUES (?,?,?,?,?,'FIRST_LOGIN',NULL)")->execute([$uid,$app['email'],$empNo,$hash,$roleId]);
+            $pdo->prepare("INSERT INTO employees (id,user_id,employee_code,first_name,last_name,department_id,position_id,hire_date,status) VALUES (?,?,?,?,?,?,NULL,CURDATE(),'PROBATION')")->execute([$eid,$uid,$empNo,$app['first_name'],$app['last_name'],$app['department_id']]);
+            $pdo->prepare("INSERT INTO employee_profiles (id,employee_id,phone,onboarding_deadline) VALUES (?,?,?,DATE_ADD(CURDATE(), INTERVAL 14 DAY))")->execute([$epid,$eid,$app['phone']]);
+            $pdo->commit();
+            audit_log('CREATE','employees',$eid,['from_applicant'=>$id,'employee_number'=>$empNo]);
+            flash('success','Converted to employee '.$empNo.' (FIRST_LOGIN).');
+        }catch(Exception $e){ $pdo->rollBack(); flash('error','Conversion failed: '.$e->getMessage()); }
+        redirect(base_url('employees/'));
     }
 }
 $jobs=$pdo->query("SELECT * FROM recruitment_jobs ORDER BY title")->fetchAll();
@@ -28,22 +54,22 @@ layout_header();
   </div>
 </div>
 <div class="card tab-notch tab-teal"><div class="card-content" style="padding:0;"><div class="table-wrap"><table>
-<thead><tr><th>Name</th><th>Job</th><th>Email</th><th>Phone</th><th>Status</th><th>Applied</th><th>Actions</th></tr></thead>
+<thead><tr><th>Name</th><th>Job</th><th>Email</th><th>Phone</th><th>Status</th><th>Tag</th><th>Applied</th><th>Actions</th></tr></thead>
 <tbody>
 <?php foreach($apps as $a): ?>
 <tr>
 <td style="font-weight:500;"><?= e($a['first_name'].' '.$a['last_name']) ?></td><td><?= e($a['job_title']??'-') ?></td><td style="font-size:0.8125rem;"><?= e($a['email']) ?></td><td><?= e($a['phone']??'-') ?></td>
-<td><span class="badge <?= badge_class($a['status']) ?>"><?= e($a['status']) ?></span></td><td style="font-family:var(--font-mono);font-size:0.8125rem;"><?= e(date('M d, Y', strtotime($a['applied_at']))) ?></td>
+<td><span class="badge <?= badge_class($a['status']) ?>"><?= e($a['status']) ?></span></td><td><?php if(($a['onboarding_tag'] ?? 'NONE')==='ONBOARDING'): ?><span class="badge badge-blue" title="Conversion will require mandatory 201 documents">ONBOARDING</span><?php else: ?><span style="color:var(--muted-foreground);">—</span><?php endif; ?></td><td style="font-family:var(--font-mono);font-size:0.8125rem;"><?= e(date('M d, Y', strtotime($a['applied_at']))) ?></td>
 <td><form method="POST" style="display:flex;gap:0.25rem;align-items:center;">
 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="id" value="<?= e($a['id']) ?>">
 <select name="status" class="input" style="height:1.6rem;font-size:0.75rem;width:7rem;"><?php foreach(['APPLIED','SCREENING','INTERVIEW','OFFER','HIRED','REJECTED'] as $s): ?><option <?= $a['status']==$s?'selected':'' ?>><?= $s ?></option><?php endforeach; ?></select>
 <button name="update_status" class="btn btn-outline btn-sm" style="height:1.6rem;">Update</button>
 </form>
-<?php if($a['status']==='HIRED'): ?><a href="<?= base_url('employees/create.php?first='.e($a['first_name']).'&last='.e($a['last_name']).'&email='.e($a['email'])) ?>" class="btn btn-primary btn-sm" style="height:1.6rem;margin-top:0.25rem;">Convert to Employee</a><?php endif; ?>
+<?php if($a['status']==='HIRED'): ?><form method="POST" style="margin-top:0.25rem;"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="id" value="<?= e($a['id']) ?>"><button name="convert_applicant" class="btn btn-primary btn-sm" style="height:1.6rem;" onclick="return confirm('Convert to employee? This generates an Employee Number and a FIRST_LOGIN account.')">Convert to Employee</button></form><?php endif; ?>
 </td>
 </tr>
 <?php endforeach; ?>
-<?php if(empty($apps)): ?><tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--muted-foreground);">No applicants</td></tr><?php endif; ?>
+<?php if(empty($apps)): ?><tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted-foreground);">No applicants</td></tr><?php endif; ?>
 </tbody>
 </table></div></div></div>
 

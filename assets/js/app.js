@@ -32,17 +32,44 @@ document.addEventListener('DOMContentLoaded', ()=>{
     syncCollapseIcon();
   });
   syncCollapseIcon();
-  // collapsible sub-navigation
-  document.querySelectorAll('[data-sb-toggle]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const list = document.getElementById(btn.dataset.sbToggle);
+  // parent rows expand their submenu when clicked (no arrow indicators);
+  // first click opens in place, second click follows the link
+  try{
+    const openIds = JSON.parse(sessionStorage.getItem('sb-open') || '[]');
+    openIds.forEach(id=>{
+      const list = document.getElementById(id);
+      if(list && list.classList.contains('sb-sub')) list.classList.remove('is-collapsed');
+    });
+  }catch(err){}
+  function persistSbOpen(){
+    const ids = Array.from(document.querySelectorAll('.sb-sub:not(.is-collapsed)')).map(el=>el.id).filter(Boolean);
+    try{ sessionStorage.setItem('sb-open', JSON.stringify(ids)); }catch(err){}
+  }
+  document.querySelectorAll('[data-sb-parent]').forEach(link=>{
+    link.addEventListener('click', (e)=>{
+      const list = document.getElementById(link.dataset.sbParent);
       if(!list) return;
-      const collapsed = list.classList.toggle('is-collapsed');
-      btn.classList.toggle('is-collapsed', collapsed);
-      btn.setAttribute('aria-expanded', String(!collapsed));
+      if(list.classList.contains('is-collapsed')){
+        e.preventDefault();
+        list.classList.remove('is-collapsed');
+        persistSbOpen();
+      }
     });
   });
-  // theme button
+  // notification dropdown
+  const btnNotif = document.getElementById('btn-notif');
+  const notifDrop = document.getElementById('notif-dropdown');
+  function toggleNotif(open){
+    if(!notifDrop) return;
+    const show = open ?? notifDrop.classList.contains('hidden');
+    notifDrop.classList.toggle('hidden', !show);
+    btnNotif?.setAttribute('aria-expanded', String(show));
+  }
+  btnNotif?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleNotif(); });
+  document.addEventListener('click', (e)=>{
+    if(notifDrop && !notifDrop.classList.contains('hidden') && !notifDrop.contains(e.target)) toggleNotif(false);
+  });
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') toggleNotif(false); });
   document.getElementById('btn-theme')?.addEventListener('click', ()=>{
     const isDark = root.classList.toggle('dark');
     localStorage.setItem('theme', isDark?'dark':'light');

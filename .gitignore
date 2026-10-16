@@ -58,3 +58,15 @@ $RECYCLE.BIN/
 database.sql
 README.md
 assets/uploads
+# Local-only / must never be committed:
+# - migrate-live.php carries a live access token
+# - check_*_tmp.* are throwaway verification scripts
+# - deploy/ ping+diag helpers may hold run output, keep the deploy script itself
+migrate-live.php
+check_*_tmp.php
+check_*_tmp.py
+deploy/ftp-ping_tmp.php
+deploy/ftp-diag.php
+deploy/ftp-check.php
+# Local DB credentials (copy to config/config.php locally, never commit)
+config/config.php

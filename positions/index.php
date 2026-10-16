@@ -7,13 +7,13 @@ $error='';
 if($_SERVER['REQUEST_METHOD']==='POST' && verify_csrf()){
     $act=$_POST['action']??'';
     if($act==='create'){
-        $title=trim($_POST['title']??''); $dept=$_POST['department_id']??''; $level=$_POST['level']??'MID'; $desc=trim($_POST['description']??'');
-        if($title && $dept){ try{ $pdo->prepare("INSERT INTO positions (id,title,department_id,level,description) VALUES (?,?,?,?,?)")->execute([uuid(),$title,$dept,$level,$desc?:null]); flash('success','Position created'); }catch(Exception $e){ $error=$e->getMessage(); } }
+        $title=trim($_POST['title']??''); $dept=$_POST['department_id']??''; $level=$_POST['level']??'MID'; $desc=trim($_POST['description']??''); $openings=max(1,(int)($_POST['openings']??1));
+        if($title && $dept){ try{ $pdo->prepare("INSERT INTO positions (id,title,department_id,level,description,openings) VALUES (?,?,?,?,?,?)")->execute([uuid(),$title,$dept,$level,$desc?:null,$openings]); audit_log('CREATE','positions',null,['title'=>$title]); flash('success','Position created'); }catch(Exception $e){ $error=$e->getMessage(); } }
         redirect(base_url('positions/'));
     }
     if($act==='update'){
-        $id=$_POST['id']??''; $title=trim($_POST['title']??''); $dept=$_POST['department_id']??''; $level=$_POST['level']??'MID'; $desc=trim($_POST['description']??'');
-        if($id && $title){ $pdo->prepare("UPDATE positions SET title=?,department_id=?,level=?,description=? WHERE id=?")->execute([$title,$dept,$level,$desc?:null,$id]); flash('success','Position updated'); }
+        $id=$_POST['id']??''; $title=trim($_POST['title']??''); $dept=$_POST['department_id']??''; $level=$_POST['level']??'MID'; $desc=trim($_POST['description']??''); $openings=max(1,(int)($_POST['openings']??1));
+        if($id && $title){ $pdo->prepare("UPDATE positions SET title=?,department_id=?,level=?,description=?,openings=? WHERE id=?")->execute([$title,$dept,$level,$desc?:null,$openings,$id]); audit_log('UPDATE','positions',$id,null); flash('success','Position updated'); }
         redirect(base_url('positions/'));
     }
 }
@@ -27,16 +27,16 @@ if($error) echo '<div style="background:color-mix(in oklab, var(--destructive) 1
   <button onclick="document.getElementById('dlg-create').showModal()" class="btn btn-primary"><i data-lucide="plus" style="width:0.875rem;height:0.875rem;"></i> New Position</button>
 </div>
 <div class="card tab-notch tab-brass"><div class="card-content" style="padding:0;"><div class="table-wrap"><table>
-<thead><tr><th>Title</th><th>Department</th><th>Level</th><th>Employees</th><th>Actions</th></tr></thead>
+<thead><tr><th>Title</th><th>Department</th><th>Level</th><th>Filled / Open</th><th>Actions</th></tr></thead>
 <tbody>
 <?php foreach($positions as $p): ?>
 <tr>
 <td style="font-weight:500;display:flex;align-items:center;gap:0.5rem;"><span style="width:1.75rem;height:1.75rem;border-radius:0.5rem;background:color-mix(in oklab, var(--chart-2) 15%, transparent);display:flex;align-items:center;justify-content:center;"><i data-lucide="briefcase" style="width:0.875rem;height:0.875rem;color:var(--chart-2);"></i></span><?= e($p['title']) ?></td>
 <td><?= e($p['dept_name'] ?? '-') ?></td>
 <td><span class="badge badge-slate"><?= e($p['level']) ?></span></td>
-<td><span class="badge badge-slate"><?= (int)$p['emp_count'] ?></span></td>
+<td style="font-size:0.8125rem;"><span class="badge badge-slate"><?= (int)$p['emp_count'] ?> filled</span> <span style="color:var(--muted-foreground);">/ <?= max(0,(int)($p['openings']??1)-(int)$p['emp_count']) ?> open of <?= (int)($p['openings']??1) ?></span></td>
 <td><div style="display:flex;gap:0.25rem;">
-<button onclick="openEdit('<?= e($p['id']) ?>','<?= e($p['title']) ?>','<?= e($p['department_id']) ?>','<?= e($p['level']) ?>','<?= e($p['description']??'') ?>')" class="btn btn-outline btn-sm" style="height:1.5rem;">Edit</button>
+<button onclick="openEdit('<?= e($p['id']) ?>','<?= e($p['title']) ?>','<?= e($p['department_id']) ?>','<?= e($p['level']) ?>','<?= e($p['description']??'') ?>',<?= (int)($p['openings']??1) ?>)" class="btn btn-outline btn-sm" style="height:1.5rem;">Edit</button>
 <a href="?delete=<?= e($p['id']) ?>" onclick="return confirmDelete()" class="btn btn-ghost btn-sm" style="height:1.5rem;color:var(--destructive);">Delete</a>
 </div></td>
 </tr>
@@ -52,6 +52,7 @@ if($error) echo '<div style="background:color-mix(in oklab, var(--destructive) 1
     <div><label style="font-size:0.8125rem;font-weight:500;">Title *</label><input name="title" required class="input"></div>
     <div><label style="font-size:0.8125rem;font-weight:500;">Department *</label><select name="department_id" required class="input"><option value="">Select</option><?php foreach($depts as $d): ?><option value="<?= e($d['id']) ?>"><?= e($d['name']) ?></option><?php endforeach; ?></select></div>
     <div><label style="font-size:0.8125rem;font-weight:500;">Level</label><select name="level" class="input"><option>JUNIOR</option><option>MID</option><option>SENIOR</option><option>LEAD</option><option>EXECUTIVE</option></select></div>
+    <div><label style="font-size:0.8125rem;font-weight:500;">Openings (headcount)</label><input name="openings" type="number" min="1" value="1" class="input"></div>
     <div><label style="font-size:0.8125rem;font-weight:500;">Description</label><textarea name="description" class="input" rows="2"></textarea></div>
     <div style="display:flex;gap:0.5rem;justify-content:flex-end;"><button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button><button class="btn btn-primary">Create</button></div>
   </form>
@@ -63,9 +64,10 @@ if($error) echo '<div style="background:color-mix(in oklab, var(--destructive) 1
     <div><label style="font-size:0.8125rem;font-weight:500;">Title *</label><input name="title" id="edit-title" required class="input"></div>
     <div><label style="font-size:0.8125rem;font-weight:500;">Department *</label><select name="department_id" id="edit-dept" class="input"><?php foreach($depts as $d): ?><option value="<?= e($d['id']) ?>"><?= e($d['name']) ?></option><?php endforeach; ?></select></div>
     <div><label style="font-size:0.8125rem;font-weight:500;">Level</label><select name="level" id="edit-level" class="input"><option>JUNIOR</option><option>MID</option><option>SENIOR</option><option>LEAD</option><option>EXECUTIVE</option></select></div>
+    <div><label style="font-size:0.8125rem;font-weight:500;">Openings (headcount)</label><input name="openings" id="edit-openings" type="number" min="1" value="1" class="input"></div>
     <div><label style="font-size:0.8125rem;font-weight:500;">Description</label><textarea name="description" id="edit-desc" class="input" rows="2"></textarea></div>
     <div style="display:flex;gap:0.5rem;justify-content:flex-end;"><button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button><button class="btn btn-primary">Save</button></div>
   </form>
 </dialog>
-<script>function openEdit(id,title,dept,level,desc){ document.getElementById('edit-id').value=id; document.getElementById('edit-title').value=title; document.getElementById('edit-dept').value=dept; document.getElementById('edit-level').value=level; document.getElementById('edit-desc').value=desc; document.getElementById('dlg-edit').showModal(); }</script>
+<script>function openEdit(id,title,dept,level,desc,openings){ document.getElementById('edit-id').value=id; document.getElementById('edit-title').value=title; document.getElementById('edit-dept').value=dept; document.getElementById('edit-level').value=level; document.getElementById('edit-desc').value=desc; document.getElementById('edit-openings').value=openings||1; document.getElementById('dlg-edit').showModal(); }</script>
 <?php layout_footer(); ?>

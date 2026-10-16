@@ -62,7 +62,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && verify_csrf()){
 }
 $enabledSections = sidebar_enabled_sections();
 $currentCustomColor = (!empty($settings['custom_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', (string)$settings['custom_color'])) ? $settings['custom_color'] : '#1a6b73';
-layout_header('Settings','Company configuration','teal','<a href="'.base_url('settings/users.php').'" class="btn btn-outline">Users</a> <a href="'.base_url('settings/roles.php').'" class="btn btn-outline">Roles</a> <a href="'.base_url('settings/audit-logs.php').'" class="btn btn-outline">Audit Logs</a> <a href="'.base_url('settings/notifications.php').'" class="btn btn-outline">Notifications</a>');
+layout_header('Settings','Company configuration','teal','<a href="'.base_url('user-management/').'" class="btn btn-outline">User Management</a> <a href="'.base_url('settings/roles.php').'" class="btn btn-outline">Roles</a> <a href="'.base_url('settings/audit-logs.php').'" class="btn btn-outline">Audit Logs</a> <a href="'.base_url('settings/notifications.php').'" class="btn btn-outline">Notifications</a>');
 ?>
 <div class="card tab-notch tab-teal"><div class="card-content">
 <form method="POST" enctype="multipart/form-data" style="display:grid;gap:0.75rem;max-width:40rem;">

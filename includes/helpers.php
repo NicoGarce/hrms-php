@@ -44,6 +44,19 @@ function verify_csrf(): bool {
     $t = $_POST['csrf'] ?? $_POST['_csrf'] ?? '';
     return hash_equals($_SESSION['csrf'] ?? '', $t);
 }
+function verify_csrf_get(): bool {
+    $t = $_GET['csrf'] ?? '';
+    return $t !== '' && hash_equals($_SESSION['csrf'] ?? '', $t);
+}
+/**
+ * Regenerate the session id without ever dropping the login: try the secure
+ * variant (delete old session) first, fall back to keeping it if the host's
+ * session storage hiccups — a failed destroy must not log the user out.
+ */
+function safe_session_regenerate(): void {
+    if (session_status() !== PHP_SESSION_ACTIVE || headers_sent()) return;
+    if (!session_regenerate_id(true)) @session_regenerate_id(false);
+}
 function audit_log(string $action, string $resource, ?string $resourceId=null, $details=null): void {
     try {
         $uid = $_SESSION['user']['id'] ?? null;
@@ -73,7 +86,7 @@ function badge_class(string $status): string {
         'ACTIVE'=>'badge-green','PRESENT'=>'badge-green','APPROVED'=>'badge-green','PAID'=>'badge-green','OPEN'=>'badge-green','HIRED'=>'badge-green',
         'ON_LEAVE'=>'badge-slate','DRAFT'=>'badge-slate','PROBATION'=>'badge-slate',
         'PENDING'=>'badge-brass','DEPARTMENT_APPROVED'=>'badge-blue','LATE'=>'badge-brass','HALF_DAY'=>'badge-brass','SCREENING'=>'badge-brass','INTERVIEW'=>'badge-brass','SUBMITTED'=>'badge-brass','PROCESSED'=>'badge-brass',
-        'TERMINATED'=>'badge-brick','REJECTED'=>'badge-brick','ABSENT'=>'badge-brick','CLOSED'=>'badge-brick',
+        'TERMINATED'=>'badge-brick','RESIGNED'=>'badge-brick','REJECTED'=>'badge-brick','ABSENT'=>'badge-brick','CLOSED'=>'badge-brick',
         'REVIEWED'=>'badge-green','OFFER'=>'badge-blue','APPLIED'=>'badge-slate',
     ];
     return $map[$status] ?? 'badge-slate';

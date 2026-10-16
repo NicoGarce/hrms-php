@@ -4,12 +4,21 @@ require_once __DIR__.'/config/database.php';
 require_once __DIR__.'/includes/helpers.php';
 require_once __DIR__.'/includes/auth.php';
 if (is_logged_in()) redirect(base_url('dashboard/'));
-$error = '';
+$error = $_SESSION['_login_error'] ?? '';
+unset($_SESSION['_login_error']);
 if ($_SERVER['REQUEST_METHOD']==='POST') {
-    $email = trim($_POST['email'] ?? '');
+    $employeeNumber = trim($_POST['employee_number'] ?? $_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
-    [$ok,$msg] = login_user($email,$password);
-    if ($ok) { audit_log('LOGIN','auth', $_SESSION['user']['id']); redirect(base_url('dashboard/')); }
+    [$ok,$msg] = login_user($employeeNumber,$password);
+    if ($ok) {
+        audit_log('LOGIN','auth', $_SESSION['user']['id']);
+        maybe_send_onboarding_reminder($_SESSION['user']['id']);
+        // Route by account state: FIRST_LOGIN -> password change, PENDING_201 -> 201 file.
+        $state = $_SESSION['user']['account_state'] ?? 'ACTIVE';
+        if ($state === 'FIRST_LOGIN') redirect(base_url('change-password.php'));
+        if ($state === 'PENDING_201') redirect(base_url('onboarding/201-file.php'));
+        redirect(base_url('dashboard/'));
+    }
     else $error = $msg;
 }
 $theme = 'teal';
@@ -64,8 +73,8 @@ $themeAttr = ($theme === 'teal' || $theme === 'custom') ? '' : $theme;
         <?php if($error): ?><div style="background:color-mix(in oklab, var(--destructive) 10%, transparent);color:var(--destructive);border:1px solid color-mix(in oklab, var(--destructive) 20%, transparent);padding:0.6rem 0.75rem;border-radius:0.5rem;font-size:0.8125rem;margin-bottom:1rem;"><?= e($error) ?></div><?php endif; ?>
         <form method="POST" style="display:flex;flex-direction:column;gap:1rem;">
           <div style="display:flex;flex-direction:column;gap:0.35rem;">
-            <label for="email" style="font-size:0.8125rem;font-weight:500;">Email</label>
-            <input id="email" name="email" type="email" placeholder="you@company.com" required autocomplete="email" value="<?= e($_POST['email'] ?? '') ?>" class="input">
+            <label for="employee_number" style="font-size:0.8125rem;font-weight:500;">Employee Number</label>
+            <input id="employee_number" name="employee_number" type="text" placeholder="e.g. 2026-0001" required autocomplete="username" value="<?= e($_POST['employee_number'] ?? '') ?>" class="input">
           </div>
           <div style="display:flex;flex-direction:column;gap:0.35rem;">
             <label for="password" style="font-size:0.8125rem;font-weight:500;">Password</label>
@@ -76,11 +85,7 @@ $themeAttr = ($theme === 'teal' || $theme === 'custom') ? '' : $theme;
           </label>
           <button type="submit" class="btn btn-primary" style="width:100%;height:2.25rem;">Sign in</button>
         </form>
-        <div style="margin-top:1rem;padding:0.75rem;background:var(--muted);border-radius:0.5rem;font-size:0.75rem;line-height:1.5;color:var(--muted-foreground);">
-          <strong>Demo accounts:</strong><br>
-          admin@company.com / AdminPass123!<br>
-          sarah.williams@company.com / Password123!
-        </div>
+        <p style="margin-top:1rem;font-size:0.75rem;color:var(--muted-foreground);">Use the Employee Number issued by HR. Contact HR if you do not have one.</p>
       </div>
     </div>
   </div>

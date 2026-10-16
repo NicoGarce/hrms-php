@@ -33,6 +33,14 @@ function layout_header(string $title='', string $subtitle='', string $accent='te
     $themeAttr = ($theme === 'teal' || $theme === 'custom') ? '' : $theme;
     $initials = initials($user['name'] ?? $user['email'] ?? 'U');
     $onProfile = nav_is_active(base_url('profile/'), parse_url($uri, PHP_URL_PATH) ?: '/');
+    // Header notification dropdown data (functional bell beside the theme toggle).
+    $notifUnread = 0; $notifRecent = [];
+    try {
+        $nq = db()->prepare("SELECT COUNT(*) FROM notifications WHERE user_id=? AND read_at IS NULL");
+        $nq->execute([$user['id']]); $notifUnread = (int)$nq->fetchColumn();
+        $nq = db()->prepare("SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 8");
+        $nq->execute([$user['id']]); $notifRecent = $nq->fetchAll();
+    } catch (Exception $e) {}
     $flashSuccess = flash('success');
     $flashError = flash('error');
 ?>
@@ -95,19 +103,35 @@ function layout_header(string $title='', string $subtitle='', string $accent='te
       <div style="display:flex;align-items:center;gap:0.5rem;">
         <button id="btn-theme" class="btn btn-ghost btn-icon" title="Toggle theme"><i data-lucide="sun" style="width:1.1rem;height:1.1rem;"></i></button>
         <div style="position:relative;">
-          <a href="<?= base_url('settings/notifications.php') ?>" class="btn btn-ghost btn-icon" title="Notifications"><i data-lucide="bell" style="width:1.1rem;height:1.1rem;"></i></a>
+          <button id="btn-notif" class="btn btn-ghost btn-icon" title="Notifications" aria-haspopup="true" aria-expanded="false">
+            <i data-lucide="bell" style="width:1.1rem;height:1.1rem;"></i>
+            <?php if($notifUnread > 0): ?><span style="position:absolute;top:0.15rem;right:0.15rem;min-width:1rem;height:1rem;border-radius:9999px;background:var(--destructive);color:#fff;font-size:0.625rem;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 0.2rem;"><?= $notifUnread > 9 ? '9+' : (int)$notifUnread ?></span><?php endif; ?>
+          </button>
+          <div id="notif-dropdown" class="hidden" style="position:absolute;right:0;top:calc(100% + 0.5rem);width:20rem;max-width:calc(100vw - 2rem);background:var(--card);border:1px solid var(--border);border-radius:0.75rem;box-shadow:0 16px 48px oklch(0 0 0 / 0.2);z-index:50;overflow:hidden;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem 0.85rem;border-bottom:1px solid var(--border);">
+              <strong style="font-size:0.8125rem;">Notifications<?= $notifUnread ? ' ('.(int)$notifUnread.' unread)' : '' ?></strong>
+              <a href="<?= base_url('settings/notifications.php?mark_all=1') ?>" style="font-size:0.72rem;">Mark all read</a>
+            </div>
+            <div style="max-height:18rem;overflow:auto;">
+              <?php if($notifRecent): foreach($notifRecent as $n): ?>
+              <a href="<?= base_url('settings/notifications.php') ?>" style="display:block;padding:0.6rem 0.85rem;border-bottom:1px solid var(--border);text-decoration:none;color:var(--foreground);background:<?= $n['read_at'] ? 'transparent' : 'color-mix(in oklab, var(--primary) 6%, transparent)' ?>;">
+                <div style="font-size:0.8125rem;font-weight:600;"><?= e($n['title']) ?></div>
+                <div style="font-size:0.75rem;color:var(--muted-foreground);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= e($n['message']) ?></div>
+                <div style="font-size:0.6875rem;color:var(--muted-foreground);"><?= e(date('M d, H:i', strtotime($n['created_at']))) ?></div>
+              </a>
+              <?php endforeach; else: ?><div style="padding:1rem;font-size:0.8125rem;color:var(--muted-foreground);text-align:center;">No notifications</div><?php endif; ?>
+            </div>
+            <a href="<?= base_url('settings/notifications.php') ?>" class="btn btn-ghost btn-sm" style="width:100%;border-radius:0;">View all</a>
+          </div>
         </div>
-        <div style="position:relative;display:flex;align-items:center;gap:0.5rem;">
-          <div style="width:2rem;height:2rem;border-radius:9999px;background:var(--primary);color:var(--primary-foreground);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:600;"><?= e($initials) ?></div>
+        <a href="<?= base_url('profile/') ?>" title="My Profile"<?= $onProfile ? ' aria-current="page"' : '' ?> style="display:flex;align-items:center;gap:0.5rem;text-decoration:none;color:var(--foreground);border-radius:0.5rem;padding:0.15rem 0.25rem;<?= $onProfile ? 'background:var(--muted);' : '' ?>">
+          <div style="width:2rem;height:2rem;border-radius:9999px;background:var(--primary);color:var(--primary-foreground);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:600;flex-shrink:0;" aria-hidden="true"><?= e($initials) ?></div>
           <div class="topbar-user-meta">
             <span style="font-size:0.8125rem;font-weight:500;"><?= e($user['name'] ?? $user['email']) ?></span>
             <span style="font-size:0.6875rem;color:var(--muted-foreground);"><?= e($user['role'] ?? '') ?></span>
           </div>
-          <div style="display:flex;gap:0.25rem;margin-left:0.25rem;">
-            <a href="<?= base_url('profile/') ?>" class="btn btn-ghost btn-icon<?= $onProfile ? ' topbar-link-active' : '' ?>" title="Profile"<?= $onProfile ? ' aria-current="page"' : '' ?>><i data-lucide="user" style="width:1rem;height:1rem;"></i></a>
-            <a href="<?= base_url('logout.php') ?>" class="btn btn-ghost btn-icon" title="Logout"><i data-lucide="log-out" style="width:1rem;height:1rem;"></i></a>
-          </div>
-        </div>
+        </a>
+        <a href="<?= base_url('logout.php') ?>" class="btn btn-ghost btn-icon" title="Logout"><i data-lucide="log-out" style="width:1rem;height:1rem;"></i></a>
       </div>
     </header>
     <main class="content animate-fade-in">
@@ -137,7 +161,7 @@ function layout_footer(): void {
         <a href="<?= base_url('departments/') ?>" class="btn btn-ghost" style="justify-content:flex-start;">🏢 Departments</a>
         <a href="<?= base_url('attendance/') ?>" class="btn btn-ghost" style="justify-content:flex-start;">📅 Attendance</a>
         <a href="<?= base_url('leave/') ?>" class="btn btn-ghost" style="justify-content:flex-start;">✈️ Leave</a>
-        <a href="<?= base_url('payroll/') ?>" class="btn btn-ghost" style="justify-content:flex-start;">💰 Payroll</a>
+        <a href="<?= base_url('documents/') ?>" class="btn btn-ghost" style="justify-content:flex-start;">📄 Documents</a>
       </div>
     </div>
   </div>
@@ -212,17 +236,16 @@ function render_sidebar(string $variant, string $curPath, ?array $user, string $
         foreach ($items as $item) {
             $kids    = $item['children'] ?? [];
             $active  = nav_is_active($item['href'], $curPath);
-            $subOpen = false;
+            $subOpen = $active;
             foreach ($kids as $k) if (nav_is_exact($k['href'], $curPath)) $subOpen = true;
             $listId  = 'sb-sub-'.$variant.'-'.preg_replace('/[^a-z0-9]+/i', '-', $item['title']);
+            // Parent rows expand their submenu when clicked (no arrow indicator).
+            // First click opens the submenu in place; clicking again follows the link.
             echo '<div class="sb-row">';
-            echo '<a href="'.e($item['href']).'" class="sb-link'.($active ? ' active' : '').'"'.($active ? ' aria-current="page"' : '').' title="'.e($item['title']).'">';
+            echo '<a href="'.e($item['href']).'" class="sb-link'.($active ? ' active' : '').'"'.($active ? ' aria-current="page"' : '').' title="'.e($item['title']).'"'
+                .($kids ? ' data-sb-parent="'.$listId.'"' : '').'>';
             echo '<i data-lucide="'.e($item['icon']).'" class="sb-icon"></i>';
             echo '<span class="sb-label">'.e($item['title']).'</span></a>';
-            if ($kids) {
-                echo '<button class="sb-toggle'.($subOpen ? '' : ' is-collapsed').'" type="button" data-sb-toggle="'.$listId.'" aria-expanded="'.($subOpen ? 'true' : 'false').'" aria-controls="'.$listId.'" title="'.e($item['title']).'">';
-                echo '<i data-lucide="chevron-down"></i></button>';
-            }
             echo '</div>';
             if ($kids) {
                 echo '<div class="sb-sub'.($subOpen ? '' : ' is-collapsed').'" id="'.$listId.'">';
