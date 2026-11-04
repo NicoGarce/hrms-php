@@ -70,3 +70,4 @@ deploy/ftp-diag.php
 deploy/ftp-check.php
 # Local DB credentials (copy to config/config.php locally, never commit)
 config/config.php
+login-details.txt
