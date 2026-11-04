@@ -59,7 +59,6 @@ $themeAttr = ($theme === 'teal' || $theme === 'custom') ? '' : $theme;
     <div style="position:relative;z-index:1;text-align:center;" class="animate-fade-in">
       <?php if ($logoSrc !== ''): ?><img src="<?= e($logoSrc) ?>" alt="<?= e($siteName) ?>" style="margin:0 auto 2rem;height:4rem;width:auto;border-radius:0.75rem;"><?php else: ?><div style="margin:0 auto 2rem;width:4rem;height:4rem;border-radius:1rem;background:var(--primary);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px color-mix(in oklab, var(--primary) 30%, transparent);color:var(--primary-foreground);font-weight:700;font-size:1.5rem;"><?= e(mb_substr($siteAbbr, 0, 1)) ?></div><?php endif; ?>
       <h1 style="font-family:var(--font-heading);font-size:2.25rem;font-weight:700;letter-spacing:-0.02em;"><?= e($siteName) ?></h1>
-      <p style="max-width:20rem;color:var(--muted-foreground);font-size:0.9375rem;margin:0.5rem auto 0;line-height:1.5;">Human resource management system — manage your workforce with confidence.</p>
     </div>
   </div>
   <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:1.5rem;">
